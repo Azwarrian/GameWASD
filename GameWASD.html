@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Turunan: Mini Game W-A-S-D</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+        }
+        canvas {
+            background-color: #2d2d2d;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Simulasi Kinematika W-A-S-D</h2>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <p>Gunakan tombol W, A, S, D untuk bergerak.</p>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Objek Karakter dengan variabel turunan fisika
+        const player = {
+            // Posisi (s) - Fungsi Posisi dasar
+            x: 300, 
+            y: 200, 
+            
+            // Kecepatan (v = ds/dt) - Turunan pertama
+            vx: 0, 
+            vy: 0, 
+            
+            // Percepatan (a = dv/dt) - Turunan kedua
+            ax: 0, 
+            ay: 0, 
+            
+            // Konstanta fisika untuk "game feel"
+            accelerationRate: 0.5, // Seberapa cepat percepatan bertambah
+            friction: 0.92,        // Gesekan agar kecepatan berkurang saat tombol dilepas
+            maxSpeed: 6,           // Batas maksimal kecepatan
+            size: 20
+        };
+
+        // Deteksi Input Keyboard
+        const keys = { w: false, a: false, s: false, d: false };
+
+        window.addEventListener("keydown", (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+        });
+
+        function updatePhysics() {
+            // 1. Tentukan Percepatan (Turunan Kedua) berdasarkan Input W-A-S-D
+            player.ax = 0;
+            player.ay = 0;
+
+            if (keys.w) player.ay = -player.accelerationRate;
+            if (keys.s) player.ay = player.accelerationRate;
+            if (keys.a) player.ax = -player.accelerationRate;
+            if (keys.d) player.ax = player.accelerationRate;
+
+            // 2. Terapkan Percepatan ke Kecepatan (v = v + a)
+            // Ini mensimulasikan integrasi: Kecepatan adalah akumulasi dari percepatan
+            player.vx += player.ax;
+            player.vy += player.ay;
+
+            // Terapkan batas kecepatan maksimum
+            player.vx = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vx));
+            player.vy = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.vy));
+
+            // Terapkan gesekan saat tidak ada tombol yang ditekan (agar berhenti mulus)
+            if (!keys.w && !keys.s) player.vy *= player.friction;
+            if (!keys.a && !keys.d) player.vx *= player.friction;
+
+            // 3. Terapkan Kecepatan ke Posisi (s = s + v)
+            // Ini mensimulasikan integrasi: Posisi adalah akumulasi dari kecepatan
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Batas layar (Opsional, agar karakter tidak keluar dari kanvas)
+            if (player.x < player.size) player.x = player.size;
+            if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
+            if (player.y < player.size) player.y = player.size;
+            if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
+        }
+
+        function draw() {
+            // Bersihkan kanvas setiap frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Gambar Karakter
+            ctx.fillStyle = "#4CAF50";
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Gambar vektor kecepatan (opsional, untuk melihat arah turunan pertama)
+            ctx.strokeStyle = "#ff3b3b";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(player.x + player.vx * 5, player.y + player.vy * 5); // dikali 5 agar garis lebih panjang
+            ctx.stroke();
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(gameLoop); // Memanggil dirinya sendiri ~60 kali per detik
+        }
+
+        // Mulai Game Loop
+        gameLoop();
+    </script>
+</body>
+</html>
